@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: event-tracking-pipeline_xx
+
+tracking:
+  kafka:
+    topic: BIGDATA_TRACKING_LOG_COLLECTOR
+    enabled: true
+
+logging:
+  file:
+    path: ${user.home}/logs
+  level:
+    com.supplychain.tracking: INFO
+
+#switch enable it
+bigdataLog:
+  active: true

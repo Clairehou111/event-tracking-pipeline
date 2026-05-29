@@ -1,0 +1,96 @@
+services:
+
+  # ============================================================
+  # KAFKA — same role as hakutaku-kafka in production
+  # ============================================================
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"                      # ✅ Port for your Mac to connect to
+    environment:
+      CLUSTER_ID: "Jg1dK3_yQf2u_5Xq99jGhw"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      # ✅ Bind to 3 ports (Internal, External, Controller)
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      # ✅ Tell Docker to use kafka:9092, tell Mac to use localhost:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # ✅ Map custom listener names to PLAINTEXT protocol
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8081:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ============================================================
+  # FILEBEAT — simulates Log Platform Logtail Agent
+  # ============================================================
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: filebeat
+    user: root
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ${HOME}/logs:/logs:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ============================================================
+  # CLICKHOUSE — simulates ODPS/MaxCompute (Data Warehouse)
+  # ============================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: clickhouse
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    ports:
+      - "8123:8123"                        # HTTP interface
+      - "9000:9000"                        # Native client
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:                           # ✅ Added healthcheck so Logstash knows when it's ready
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # LOGSTASH — simulates DataWorks (Kafka consumer + ETL)
+  # ============================================================
+  logstash:
+    image: logstash:8.11.0
+    container_name: logstash
+    environment:
+      - XPACK_MONITORING_ENABLED=false     # <-- Add this line to stop the ES errors
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+
+volumes:
+  clickhouse_data:

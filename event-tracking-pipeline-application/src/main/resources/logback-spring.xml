@@ -1,0 +1,54 @@
+<configuration>
+    <property name="LOG_PATH" value="${user.home}/logs"/>
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="event-tracking-pipeline_xx"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="bigDataLogAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+        <file>${LOG_PATH}/${APP_NAME}-bigdata.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <FileNamePattern>${LOG_PATH}/${APP_NAME}-bigdata.%d{yyyy-MM-dd-HH}.%i.log</FileNamePattern>
+            <MaxHistory>48</MaxHistory>
+            <maxFileSize>1GB</maxFileSize>
+            <totalSizeCap>20GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="bigAsyncDataLogAppender" class="ch.qos.logback.classic.AsyncAppender" additivity="false">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>1024</queueSize>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="bigDataLogAppender"/>
+    </appender>
+
+    <logger name="bigDataLogger" level="INFO" additivity="false">
+        <appender-ref ref="bigDataLogAppender"/>
+    </logger>
+
+    <logger name="bigDataAsyncLogger" level="INFO" additivity="false">
+        <appender-ref ref="bigAsyncDataLogAppender"/>
+    </logger>
+
+    <appender name="APP_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/app.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/app.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="APP_LOG"/>
+    </root>
+</configuration>
