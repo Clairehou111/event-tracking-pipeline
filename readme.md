@@ -1,4 +1,4 @@
-# Server-Side Unified Big Data Tracking Pipeline
+# Server-Side Unified Event Tracking Pipeline
 
 > Based on the internal design document: `DESIGN.md`
 
@@ -18,7 +18,7 @@ This resulted in:
 - ❌ No unified standard or governance
 - ❌ Low data sensitivity among developers
 
-**Goal:** Build a unified server-side tracking pipeline that lowers the barrier to Big Data integration, increases developer data awareness, and provides better data support for business, product, developers, and data analysts.
+**Goal:** Build a unified server-side tracking pipeline that lowers the barrier to event tracking integration, increases developer data awareness, and provides better data support for business, product, developers, and data analysts.
 
 ---
 
@@ -33,16 +33,16 @@ By decoupling data generation from data processing, the architecture ensures hig
 ```mermaid  
 flowchart TD  
     subgraph 1 - Data Generation  
-        APP[Business Services] -->|extends BaseBigDataLog| SDK[Unified Java SDK]  
-        SDK -->|async log write| LOG[Logback AsyncAppender\nbigdata.log]  
+        APP[Business Services] -->|extends BaseEventTrackingLog| SDK[Unified Java SDK]  
+        SDK -->|async log write| LOG[Logback AsyncAppender\ntracking.log]  
     end  
 
     subgraph 2 - Log Collection Layer  
-        LOG -->|file collection *bigdata.log| LC[Log Platform\nLog Collection Agent]  
+        LOG -->|file collection *tracking.log| LC[Log Platform\nLog Collection Agent]  
     end  
 
     subgraph 3 - Message Broker  
-        LC -->|publish JSON| KAFKA[Kafka Cluster\nTopic: SUPPLY_CHAIN_TRACKING_LOG_COLLECTOR]  
+        LC -->|publish JSON| KAFKA[Kafka Cluster\nTopic: EVENT_TRACKING_LOG_COLLECTOR]  
     end  
 
     subgraph 4 - Stream Processor  
@@ -50,8 +50,8 @@ flowchart TD
     end  
 
     subgraph 5 - Data Warehouse  ODPS / MaxCompute  
-        DW -->|real-time insert| ODS[(ODS: kafka_supply_track_log_rt\nRaw Data · No Partition)]  
-        ODS -->|T-1 Batch ETL Job\n01:00 AM daily| DWD[(DWD: kafka_supply_track_log_rt_scene\nPartitioned by pt)]  
+        DW -->|real-time insert| ODS[(ODS: event_tracking_log_rt\nRaw Data · No Partition)]  
+        ODS -->|T-1 Batch ETL Job\n01:00 AM daily| DWD[(DWD: event_tracking_log_rt_scene\nPartitioned by pt)]  
     end  
 
     subgraph 6 - Downstream Consumers  
@@ -68,13 +68,13 @@ flowchart TD
 | Logical Layer | Production (Alibaba Cloud) | Local Simulation (Docker) | Purpose |
 | :--- | :--- | :--- | :--- |
 | **Data Source** | Production Java Applications | Java SDK Mock | Generates standardized JSON tracking logs |
-| **Log Appender** | Logback AsyncAppender | Logback AsyncAppender | Async write to `*bigdata.log` file |
-| **Log Collection** | Log Platform (fusion-logging) | Logstash File Input | Tails and collects `*bigdata.log` |
+| **Log Appender** | Logback AsyncAppender | Logback AsyncAppender | Async write to `*tracking.log` file |
+| **Log Collection** | Log Platform (fusion-logging) | Logstash File Input | Tails and collects `*tracking.log` |
 | **Message Queue** | Kafka (hakutaku-kafka cluster) | Kafka / HTTP Input | Buffers high-throughput real-time streams |
 | **Stream Processor** | DataWorks DI | Logstash | Parses JSON, standardizes timestamps, routes data |
 | **Data Warehouse** | MaxCompute (ODPS) | ClickHouse | High-performance columnar analytics database |
-| **ODS Layer** | `kafka_supply_track_log_rt` | `kafka_supply_track_log_rt` | Raw unpartitioned continuous streaming data |
-| **DWD Layer** | `kafka_supply_track_log_rt_scene` | `kafka_supply_track_log_rt_scene` | Cleaned data partitioned by day (`pt`) |
+| **ODS Layer** | `event_tracking_log_rt` | `event_tracking_log_rt` | Raw unpartitioned continuous streaming data |
+| **DWD Layer** | `event_tracking_log_rt_scene` | `event_tracking_log_rt_scene` | Cleaned data partitioned by day (`pt`) |
 | **ETL Scheduler** | DataWorks Scheduler | Cron / Manual SQL | Triggers daily T-1 extraction at 01:00 AM |
 | **Query Platform** | DataWorks IDE / AutoFetch | ClickHouse Play UI | Ad-hoc queries and data exploration |
 
@@ -82,7 +82,7 @@ flowchart TD
 
 ## 📐 Tracking Log Specification (SDK Standard)
 
-All tracking events must follow the unified JSON schema. The `BaseBigDataLog` class enforces this automatically.
+All tracking events must follow the unified JSON schema. The `BaseEventTrackingLog` class enforces this automatically.
 
 ```json  
 {  
@@ -125,13 +125,13 @@ All tracking events must follow the unified JSON schema. The `BaseBigDataLog` cl
 
 Acts as the raw landing zone. Receives the continuous data stream 24/7. **No `pt` partition field**, as data arrives continuously.
 
-> Production table: `my_bigdata.kafka_supply_track_log_rt`
-> Overseas table: `my_overseas_bigdata.kafka_supply_track_log_rt`
+> Production table: `my_event_tracking.event_tracking_log_rt`
+> Overseas table: `my_overseas_event_tracking.event_tracking_log_rt`
 
 ```sql  
-CREATE DATABASE IF NOT EXISTS my_bigdata;  
+CREATE DATABASE IF NOT EXISTS my_event_tracking;  
 
-CREATE TABLE IF NOT EXISTS my_bigdata.kafka_supply_track_log_rt (  
+CREATE TABLE IF NOT EXISTS my_event_tracking.event_tracking_log_rt (  
     namespace  String,  
     sceneKey   String,  
     sceneDesc  String,  
@@ -153,11 +153,11 @@ ORDER BY (namespace, dateTime);
 
 Structured Data Warehouse Detail layer. Introduces the **`pt` (Partition Time)** field following standard ODPS partition design. Recommended for all analytical queries due to significantly faster performance.
 
-> Production table (domestic): `my_bigdata.kafka_supply_track_log_rt_scene`
-> Production table (overseas): `my_overseas_bigdata.kafka_supply_track_log_overseas_rt_scene`
+> Production table (domestic): `my_event_tracking.event_tracking_log_rt_scene`
+> Production table (overseas): `my_overseas_event_tracking.event_tracking_log_overseas_rt_scene`
 
 ```sql  
-CREATE TABLE IF NOT EXISTS my_bigdata.kafka_supply_track_log_rt_scene (  
+CREATE TABLE IF NOT EXISTS my_event_tracking.event_tracking_log_rt_scene (  
     pt         String,     -- partition date e.g. '20260324'  
     namespace  String,  
     sceneKey   String,  
@@ -182,7 +182,7 @@ In production, a DataWorks node executes nightly at 01:00 AM. It reads exactly *
 **Local simulation SQL:**
 
 ```sql  
-INSERT INTO my_bigdata.kafka_supply_track_log_rt_scene  
+INSERT INTO my_event_tracking.event_tracking_log_rt_scene  
 SELECT  
     -- Dynamically generate 'pt' from dateTime (e.g., '20260324')  
     formatDateTime(parseDateTimeBestEffort(dateTime), '%Y%m%d') AS pt,  
@@ -194,7 +194,7 @@ SELECT
     traceId,  
     spanId,  
     data  
-FROM my_bigdata.kafka_supply_track_log_rt  
+FROM my_event_tracking.event_tracking_log_rt  
 -- T-1 Filter: only yesterday's data  
 WHERE toDate(parseDateTimeBestEffort(dateTime)) = yesterday();  
 ```
@@ -236,7 +236,7 @@ this.setTimestamp(yesterdayTimestamp);
 ### 4. Verify Real-Time Ingestion
 
 ```sql  
-SELECT count(*) FROM my_bigdata.kafka_supply_track_log_rt;  
+SELECT count(*) FROM my_event_tracking.event_tracking_log_rt;  
 ```
 
 ### 5. Run the T-1 ETL Job
@@ -247,7 +247,7 @@ Execute the `INSERT INTO ... SELECT` query from the ETL section above.
 
 ```sql  
 SELECT *  
-FROM my_bigdata.kafka_supply_track_log_rt_scene  
+FROM my_event_tracking.event_tracking_log_rt_scene  
 WHERE pt = formatDateTime(yesterday(), '%Y%m%d');  
 ```
 

@@ -1,21 +1,18 @@
 package com.example.model.log;
 
-
 import com.demo.framework.bigdata.log.model.BaseBigDataLog;
-import com.example.model.user.HttpHeaderContext;
+import com.example.constants.EventTrackingSceneKeyEnum;
 import com.example.model.user.OperationUserContext;
+import com.example.model.user.OperationUserContextHolder;
 import lombok.Getter;
 import lombok.Setter;
 
-
-import com.example.constants.BigDataSceneKeyEnum;
-import com.example.model.user.OperationUserContextHolder;
 import java.util.Objects;
 
 @Getter
 @Setter
-public abstract class AbstractBigDataLog extends BaseBigDataLog {
-    
+public abstract class BaseEventTrackingLog extends BaseBigDataLog {
+
     private Long userId;
 
     private String userName;
@@ -48,8 +45,8 @@ public abstract class AbstractBigDataLog extends BaseBigDataLog {
 
     private String terminalSource;
 
-    public AbstractBigDataLog(BigDataSceneKeyEnum bigDataSceneKeyEnum) {
-        super(bigDataSceneKeyEnum.getSceneKey(), bigDataSceneKeyEnum.getSceneDesc());
+    public BaseEventTrackingLog(EventTrackingSceneKeyEnum eventTrackingSceneKeyEnum) {
+        super(eventTrackingSceneKeyEnum.getSceneKey(), eventTrackingSceneKeyEnum.getSceneDesc());
         OperationUserContext userContext = OperationUserContextHolder.getOperationUser();
         if (Objects.nonNull(userContext)) {
             this.setRealName(userContext.getRealName());
@@ -62,13 +59,5 @@ public abstract class AbstractBigDataLog extends BaseBigDataLog {
             this.setOrgFullName(userContext.getOrgFullName());
         }
 
-//        HttpHeaderContext headerContext = PhoenixContext.getHttpHeader();
-//        if (Objects.nonNull(headerContext)) {
-//            this.setPlatform(headerContext.getPlatform());
-//            this.setDeviceId(headerContext.getDeviceId());
-//            this.setAppBuild(headerContext.getAppBuild());
-//            this.setActionCode(headerContext.getActionCode());
-//            this.setTerminalSource(headerContext.getTerminalSource());
-//        }
     }
 }

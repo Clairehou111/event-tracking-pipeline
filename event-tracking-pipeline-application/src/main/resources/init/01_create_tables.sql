@@ -1,7 +1,7 @@
-CREATE DATABASE IF NOT EXISTS my_bigdata;
+CREATE DATABASE IF NOT EXISTS my_event_tracking;
 
--- Raw table — mirrors ODPS kafka_supply_track_log_rt
-CREATE TABLE IF NOT EXISTS my_bigdata.kafka_supply_track_log_rt (
+-- Raw table — mirrors ODPS event_tracking_log_rt
+CREATE TABLE IF NOT EXISTS my_event_tracking.event_tracking_log_rt (
     year       String,
     month      String,
     day        String,
@@ -20,8 +20,8 @@ ENGINE = MergeTree()
 PARTITION BY (year, month, day, hour)
 ORDER BY (namespace, sceneKey, timestamp);
 
--- T-1 scene table — mirrors ODPS kafka_supply_track_log_rt_scene
-CREATE TABLE IF NOT EXISTS my_bigdata.kafka_supply_track_log_rt_scene (
+-- T-1 scene table — mirrors ODPS event_tracking_log_rt_scene
+CREATE TABLE IF NOT EXISTS my_event_tracking.event_tracking_log_rt_scene (
     pt         String,
     namespace  String,
     sceneKey   String,

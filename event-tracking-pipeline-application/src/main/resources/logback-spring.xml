@@ -8,32 +8,32 @@
         </encoder>
     </appender>
 
-    <appender name="bigDataLogAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="trackingLogAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder>
             <pattern>%msg%n</pattern>
         </encoder>
-        <file>${LOG_PATH}/${APP_NAME}-bigdata.log</file>
+        <file>${LOG_PATH}/${APP_NAME}-tracking.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <FileNamePattern>${LOG_PATH}/${APP_NAME}-bigdata.%d{yyyy-MM-dd-HH}.%i.log</FileNamePattern>
+            <FileNamePattern>${LOG_PATH}/${APP_NAME}-tracking.%d{yyyy-MM-dd-HH}.%i.log</FileNamePattern>
             <MaxHistory>48</MaxHistory>
             <maxFileSize>1GB</maxFileSize>
             <totalSizeCap>20GB</totalSizeCap>
         </rollingPolicy>
     </appender>
 
-    <appender name="bigAsyncDataLogAppender" class="ch.qos.logback.classic.AsyncAppender" additivity="false">
+    <appender name="trackingAsyncLogAppender" class="ch.qos.logback.classic.AsyncAppender" additivity="false">
         <discardingThreshold>0</discardingThreshold>
         <queueSize>1024</queueSize>
         <neverBlock>true</neverBlock>
-        <appender-ref ref="bigDataLogAppender"/>
+        <appender-ref ref="trackingLogAppender"/>
     </appender>
 
-    <logger name="bigDataLogger" level="INFO" additivity="false">
-        <appender-ref ref="bigDataLogAppender"/>
+    <logger name="trackingLogger" level="INFO" additivity="false">
+        <appender-ref ref="trackingLogAppender"/>
     </logger>
 
-    <logger name="bigDataAsyncLogger" level="INFO" additivity="false">
-        <appender-ref ref="bigAsyncDataLogAppender"/>
+    <logger name="trackingAsyncLogger" level="INFO" additivity="false">
+        <appender-ref ref="trackingAsyncLogAppender"/>
     </logger>
 
     <appender name="APP_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">

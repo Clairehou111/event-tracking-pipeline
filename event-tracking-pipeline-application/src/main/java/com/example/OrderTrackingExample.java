@@ -1,8 +1,7 @@
 package com.example;
 
-
-import com.demo.framework.bigdata.log.BigDataLog;
-import com.example.model.log.ShippingBigDataLog;
+import com.example.model.log.EventTrackingLog;
+import com.example.model.log.ShippingEventTrackingLog;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -15,13 +14,10 @@ public class OrderTrackingExample {
     // Example: track an order status change event
     public void trackOrderStatusChange(String orderId,
                                        String expressCode) {
-        ShippingBigDataLog log = new ShippingBigDataLog();
+        ShippingEventTrackingLog log = new ShippingEventTrackingLog();
         log.setOrderNo(orderId);
         log.setExpressCode(expressCode);
 
-        // Non-blocking, fire-and-forget
-        BigDataLog.asyncLog(log);
-
-
+        EventTrackingLog.asyncLog(log);
     }
 }

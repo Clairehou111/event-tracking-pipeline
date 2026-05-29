@@ -4,14 +4,14 @@ spring:
 
 tracking:
   kafka:
-    topic: BIGDATA_TRACKING_LOG_COLLECTOR
+    topic: EVENT_TRACKING_LOG_COLLECTOR
     enabled: true
 
 logging:
   file:
     path: ${user.home}/logs
   level:
-    com.supplychain.tracking: INFO
+    com.example: INFO
 
 #switch enable it
 bigdataLog:

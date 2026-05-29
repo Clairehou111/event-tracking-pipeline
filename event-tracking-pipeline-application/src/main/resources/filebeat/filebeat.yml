@@ -4,14 +4,14 @@ filebeat.inputs:
   - type: log
     enabled: true
     paths:
-      - /logs/*bigdata.log       # matches *bigdata.log wildcard
+      - /logs/*tracking.log      # matches *tracking.log wildcard
     json.keys_under_root: true   # parse JSON lines directly
     json.add_error_key: true
 
 # Send to Kafka — same topic as production
 output.kafka:
   hosts: ["kafka:9092"]
-  topic: "BIGDATA_TRACKING_LOG_COLLECTOR"    # exact same topic name
+  topic: "EVENT_TRACKING_LOG_COLLECTOR"    # exact same topic name
   codec.json:
     pretty: false
   required_acks: 1
